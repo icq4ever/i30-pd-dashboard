@@ -20,7 +20,9 @@ public final class TabsPreview {
         File out=new File(a[1]);out.mkdirs();
         Theme.select(System.getProperty("preview.theme","n"));
         {String r=System.getProperty("preview.root","");java.io.File m=new java.io.File(r,"apps/dashboard/res/raw/chakra_petch_medium.ttf");   // the 수동 screen's face, as the car loads it
-         if(m.isFile()){LambdaCluster.FACE=android.graphics.Typeface.createFromFile(m);LambdaCluster.FACE_BOLD=android.graphics.Typeface.createFromFile(new java.io.File(r,"apps/dashboard/res/raw/chakra_petch_bold.ttf"));}}   // PREVIEW_THEME=lambo|bmw|ice|mono|amber|teal|night|rose|copper|red|green in preview.sh
+         if(m.isFile()){LambdaCluster.FACE=android.graphics.Typeface.createFromFile(m);LambdaCluster.FACE_BOLD=android.graphics.Typeface.createFromFile(new java.io.File(r,"apps/dashboard/res/raw/chakra_petch_bold.ttf"));}
+         java.io.File b=new java.io.File(r,"apps/dashboard/res/raw/inter_medium.ttf");   // the WRC screen's face
+         if(b.isFile()){WrcCluster.FACE=android.graphics.Typeface.createFromFile(b);WrcCluster.FACE_ITALIC=android.graphics.Typeface.createFromFile(new java.io.File(r,"apps/dashboard/res/raw/inter_bold_italic.ttf"));}}   // PREVIEW_THEME=lambo|bmw|ice|mono|amber|teal|night|rose|copper|red|green in preview.sh
         CarPaint.select(System.getProperty("preview.paint","blue"));   // PREVIEW_PAINT=white|red|black|grey|navy|brown|intense|orange|marina|silver|copper|purple|khaki
         float at=a.length>2?Float.parseFloat(a[2]):1f;   // 0..1 position in the log
         long secs=600_000;for(String line:Files.readAllLines(new File(a[0]).toPath(),StandardCharsets.UTF_8))
@@ -76,7 +78,7 @@ public final class TabsPreview {
         for(int i=0;i<layouts.length;i++){rec.setPage(PitRenderer.PAGE_CLASSIC+i);save(out,layouts[i],rec,model,now,false,false);}
         rec.setPicker(true,false,0);save(out,"9_cluster_list",rec,model,now,false,false);rec.setPicker(false,false,0);
         {   // trim (the dashboard out of sight): every screen with kept bitmaps draws the same after letting go of them
-            int[] pages=new int[layouts.length+3];for(int i=0;i<layouts.length;i++)pages[i]=PitRenderer.PAGE_CLASSIC+i;pages[layouts.length]=PitRenderer.PAGE_ECO;pages[layouts.length+1]=PitRenderer.PAGE_TACHO;pages[layouts.length+2]=PitRenderer.PAGE_CLASSIC;
+            int[] pages=new int[layouts.length+4];for(int i=0;i<layouts.length;i++)pages[i]=PitRenderer.PAGE_CLASSIC+i;pages[layouts.length]=PitRenderer.PAGE_ECO;pages[layouts.length+1]=PitRenderer.PAGE_TACHO;pages[layouts.length+2]=PitRenderer.PAGE_WRC;pages[layouts.length+3]=PitRenderer.PAGE_CLASSIC;
             int bad=0;StringBuilder why=new StringBuilder();
             for(int pg:pages){BufferedImage[] im=new BufferedImage[2];
                 for(int m=0;m<2;m++){if(m==1)rec.trim();rec.setPage(pg);BufferedImage img=new BufferedImage(800,480,BufferedImage.TYPE_INT_RGB);
@@ -517,6 +519,18 @@ public final class TabsPreview {
              BufferedImage img=new BufferedImage(800,480,BufferedImage.TYPE_INT_RGB);android.graphics.Canvas c=new android.graphics.Canvas(img.createGraphics());
              new PitRenderer().draw(c,800,480,false,model,now,0,false,null);k.frame(c,q,model,new DriveStats(),pf,now+i*1000,null);
              ImageIO.write(img,"png",new File(out,tcn[i]+".png"));}
+        }
+        {   // WRC: {gear, km/h, rpm, selector} against a 6,000 rpm shift target (green 3,500, orange 5,400, red 6,000): each
+            // step, and a DCT in the manual gate (the bare number, no M)
+         float[][] wk={{3,40,1800,-1},{3,80,4200,-1},{3,104,5500,-1},{3,118,6120,-1},{3,118,6120,4}};
+         String[] wcn={"9s_wrc_low","9s_wrc_green","9s_wrc_orange","9s_wrc_shift","9s_wrc_dct_manual"};
+         WrcCluster k=new WrcCluster();k.shiftTarget=6000;
+         for(int i=0;i<wk.length;i++){float[] r=wk[i];Telemetry.Sample[] q=model.snapshot(now);
+             q[8]=new Telemetry.Sample(r[0],true,false,true,false,0);q[7]=new Telemetry.Sample(r[1],true,false,true,false,0);q[0]=new Telemetry.Sample(r[2],true,false,true,false,0);
+             BufferedImage img=new BufferedImage(800,480,BufferedImage.TYPE_INT_RGB);android.graphics.Canvas c=new android.graphics.Canvas(img.createGraphics());
+             new PitRenderer().draw(c,800,480,false,model,now,0,false,null);if(r[3]>=0)q[Telemetry.GEAR_SELECTOR]=new Telemetry.Sample(r[3],true,false,true,false,0);
+             k.frame(c,q,model,new DriveStats(),r[3]>=0?VehicleProfile.PETROL_DCT:VehicleProfile.PETROL_MT,now+i*1000,null);
+             ImageIO.write(img,"png",new File(out,wcn[i]+".png"));}
         }
         // 수동 screen (the Λ layout, 6MT): {gear, km/h, rpm, clutch, brake bar}; the race and performance pages turn the rpm green on a match
         float[][] ds={{4,80,1500,1,22},{5,100,2800,0,0},{3,60,2800,0,25},{6,96,2200,0,0},{4,80,3720,1,22},{3,122,5750,0,0}};String[] dsn={"a_4th80_clutch","b_5th100_cruise","c_3rd60_brake","d_6th96","e_4th80_match","f_3rd122_upshift"};

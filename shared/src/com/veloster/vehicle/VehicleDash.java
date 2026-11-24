@@ -539,8 +539,9 @@ public final class VehicleDash extends View implements Runnable {
     /** The latest valid value of a signal, NaN when there is none (the OBD poller's sports-drive burst reads rpm and pedal). */
     public static float now(int i){Telemetry.Sample x=DATA.sample(i,SystemClock.elapsedRealtime());return x.valid?x.value:Float.NaN;}
     /** A TTF from res/raw (API 17 has no font resources): copied once into the cache, then Typeface.createFromFile; null on any failure. */
-    /** The Chakra Petch faces (LambdaCluster, the floating window's skins), loaded once: by the dashboard, or by FloatService at boot. */
-    public static void fonts(android.content.Context a){if(LambdaCluster.FACE==null){LambdaCluster.FACE=rawFont(a,"chakra_petch_medium");LambdaCluster.FACE_BOLD=rawFont(a,"chakra_petch_bold");}}
+    /** The Chakra Petch faces (LambdaCluster, the floating window's skins) and Inter (WrcCluster), loaded once: by the dashboard, or by FloatService at boot. */
+    public static void fonts(android.content.Context a){if(LambdaCluster.FACE==null){LambdaCluster.FACE=rawFont(a,"chakra_petch_medium");LambdaCluster.FACE_BOLD=rawFont(a,"chakra_petch_bold");}
+        if(WrcCluster.FACE==null){WrcCluster.FACE=rawFont(a,"inter_medium");WrcCluster.FACE_ITALIC=rawFont(a,"inter_bold_italic");}}
     private static android.graphics.Typeface rawFont(android.content.Context c,String name){
         try{int id=c.getResources().getIdentifier(name,"raw",c.getPackageName());if(id==0)return null;
             java.io.File f=new java.io.File(c.getCacheDir(),name+".ttf");
