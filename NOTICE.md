@@ -32,6 +32,14 @@ CAN 메시지·신호의 배치와 배율은 [commaai/opendbc](https://github.co
 
 람다 화면(Λ 계기)의 글자는 Chakra Petch(Medium·Bold)로 그립니다. Copyright 2018 The Chakra Petch Project Authors (https://github.com/m4rc1e/Chakra-Petch), SIL Open Font License 1.1. 글꼴 파일은 `apps/dashboard/res/raw/`에, 라이선스 전문은 `i30pd_port/licenses/ChakraPetch-OFL.txt`에 있습니다. 글꼴은 고치지 않고 그대로 앱에 넣었습니다.
 
+## WRC 화면
+
+WRC 화면의 배치(시프트 바, 큰 단수, RPM·속도 칸)는 aaronfang의 SimHub 대시 "Replicate EA WRC23 in game Dashboard Collection"(https://overtake.gg/downloads/replicate-ea-wrc23-in-game-dashboard-collection.67288) 중 `000-Default` 화면을 보고 800×428에 맞춰 새로 그린 것입니다. 원본 파일·그림·글꼴은 넣지 않았고, 사각형과 글자의 자리·색만 옮겼습니다. 원본 대시는 EA SPORTS WRC 게임 속 계기를 재현한 것입니다.
+
+## WRC 화면 글꼴
+
+WRC 화면의 글자는 Inter(Medium, Bold Italic)로 그립니다. Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter), SIL Open Font License 1.1. 글꼴 파일은 `apps/dashboard/res/raw/inter_medium.ttf`, `inter_bold_italic.ttf`에, 라이선스 전문은 `i30pd_port/licenses/Inter-OFL.txt`에 있습니다. 바꾼 점: 가변 글꼴에서 굵기 하나씩(500, 기울임 700)을 뽑아 영문·숫자 범위(U+0020–00FF, U+2014)만 남겼고, Medium은 숫자 0–9가 글꼴 안의 고정폭 숫자(tnum)를 가리키도록 cmap을 고쳤습니다(Android 4.2는 글꼴 기능을 켤 수 없음). 원본과 헷갈리지 않게 이름을 "Inter TF"로 바꿨습니다. 이 글꼴도 같은 OFL 1.1을 따릅니다.
+
 ## 에코 화면의 차 그림
 
 에코 화면 배기구 보기의 차(뒷범퍼 왼쪽 아래)는 3D 모델 "hyundai i30 n"(amogusstrikesback2, https://sketchfab.com/3d-models/hyundai-i30-n-90c3bd24390b46299cf01c16d5e8091f)을 렌더한 그림이며 CC BY 4.0(https://creativecommons.org/licenses/by/4.0/)을 따릅니다. 바꾼 점: 번호판을 숨기고 차체를 회색으로 칠해 낮은 뒤쪽 시점에서 렌더했고, 차체 부분만 따로 떼어 앱이 차량 색을 곱해 입힙니다(`apps/dashboard/res/raw/eco_car_rear.png`, `eco_car_paint.png`). 아케이드 화면과 같은 모델이라 같은 사정(게임에서 가져온 모델일 수 있음)이 있고, 권리자가 요청하면 이 그림을 빼겠습니다.
