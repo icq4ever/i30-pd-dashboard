@@ -432,7 +432,7 @@ public final class VehicleDash extends View implements Runnable {
         else if(t>=SettingsLayout.F_DN&&t<SettingsLayout.F_DN+SettingsLayout.F_DN_NAMES.length){if(FloatPanel.skin<0||FloatPanel.round(shape))return;FloatPanel.dn=t-SettingsLayout.F_DN;}   // 자동 / 낮 / 밤, dim like the looks
         else if(t==SettingsLayout.F_AUTO){if(FloatPanel.round(shape))return;if(FloatPanel.skin<0)FloatPanel.setActiveSkin(FloatPanel.skinNow());else FloatPanel.skin=FloatPanel.AUTO;}   // off keeps the look it was following, in the side in use now
         else if(t==SettingsLayout.F_FORM){floatEdit=SettingsLayout.FORM_SHEET;return;}
-        else if(t==SettingsLayout.F_EDIT||t>=SettingsLayout.F_CELL&&t<SettingsLayout.F_CELL+4){   // open the chooser for that cell
+        else if(t==SettingsLayout.F_EDIT||t>=SettingsLayout.F_CELL&&t<SettingsLayout.F_CELL+FloatPanel.MAX_CELLS){   // open the chooser for that cell (shapes with up to 7 cells)
             int u=FloatPanel.used(shape,FloatPanel.count),k=t==SettingsLayout.F_EDIT?Math.min(floatSel,u-1):t-SettingsLayout.F_CELL;if(k>=u)return;
             floatSel=k;floatEdit=k;int cur=FloatPanel.cells[k];floatEditSig=cur>=0&&FloatPanel.available(cur,prof)?cur:-1;floatEditGraph=FloatPanel.graphs[k];
             int[] gs=FloatPanel.groups(prof);int want=FloatPanel.groupOf(FloatPanel.resolve(cur,k,prof));floatEditTab=0;for(int gt=0;gt<gs.length;gt++)if(gs[gt]==want)floatEditTab=gt;   // open on the reading's group
@@ -717,7 +717,7 @@ public final class VehicleDash extends View implements Runnable {
                 return true;
             }
             if(settingsCat==SettingsLayout.FLOAT&&pickSlot<0){floatTap(x,y);invalidate();return true;}
-            int pane=pickSlot>=0?SettingsLayout.PICK:settingsCat;float paneSc=pane==SettingsLayout.SOUND?settingsScroll:0;
+            int pane=pickSlot>=0?SettingsLayout.PICK:settingsCat;float paneSc=SettingsLayout.rowScroll(pane)?settingsScroll:0;
             int i=SettingsLayout.item(pane,x,y,paneSc);
             if(i<0||i!=SettingsLayout.item(pane,downX,downY,paneSc))return true;
             SharedPreferences.Editor e=activity.getSharedPreferences("pit_vehicle_ui",0).edit();
@@ -747,9 +747,9 @@ public final class VehicleDash extends View implements Runnable {
                     if(i>=SettingsLayout.RPM_DOWN1){int dk=i-SettingsLayout.RPM_DOWN1;   // 끔 -> each sound in turn -> 끔
                         downSounds[dk]=downSounds[dk]+1>=SettingsLayout.BEEP_SOUNDS.length?-1:downSounds[dk]+1;e.putInt("downshift_sound_"+(dk+1),downSounds[dk]);
                         if(downSounds[dk]>=0)beep.play(soundOn&&soundRoute==0?sound:null,downSounds[dk],beepVol/100f);break;}
-                    if(i==SettingsLayout.RPM_BEEP_VOL){if(!beepOn&&downSounds[0]<0&&downSounds[1]<0&&downSounds[2]<0)break;int zv=SettingsLayout.screenZone(x);if(zv!=SettingsLayout.screenZone(downX))break;   // − / + 10%; the rest of the row puts 70% back
+                    if(i==SettingsLayout.RPM_BEEP_VOL){if(!beepOn&&downSounds[0]<0&&downSounds[1]<0&&downSounds[2]<0)break;int zv=SettingsLayout.stepZone(x);if(zv<0||zv!=SettingsLayout.stepZone(downX))break;   // − / + 10%; the label puts 70% back
                         beepVol=zv==1?Math.max(0,beepVol-10):zv==2?Math.min(200,beepVol+10):70;e.putInt("shift_beep_vol",beepVol);beep.play(soundOn&&soundRoute==0?sound:null,beepSound,beepVol/100f);break;}
-                    int z=SettingsLayout.screenZone(x);if(z!=SettingsLayout.screenZone(downX))break;
+                    int z=SettingsLayout.stepZone(x);if(z<0||z!=SettingsLayout.stepZone(downX))break;
                     VehicleProfile prof=DATA.profile();int d=z==1?-100:z==2?100:0;
                     if(i==SettingsLayout.RPM_SHIFT){shiftTarget=d==0?0:ShiftGuide.clamp(ShiftGuide.target(shiftTarget,prof)+d,prof.shiftMin,prof.shiftTop());e.putInt("shift_target",shiftTarget);}
                     else{redline=d==0?0:ShiftGuide.clamp((int)prof.redline+d,prof.redlineMin,prof.redlineMax);VehicleProfile.setRedline(redline);e.putInt("redline",redline);}
@@ -762,13 +762,13 @@ public final class VehicleDash extends View implements Runnable {
                     else if(i==SettingsLayout.SOUND_ROUTE)soundRoute=(soundRoute+1)%SettingsLayout.SOUND_ROUTES.length;
                     else if(i==SettingsLayout.SOUND_ENGINE)soundEngine=(soundEngine+1)%EngineSynth.engines();
                     else if(i==SettingsLayout.SOUND_EXHAUST)soundExhaust=(soundExhaust+1)%EngineSynth.exhausts();
-                    else{int z=SettingsLayout.screenZone(x);if(z!=SettingsLayout.screenZone(downX))break;   // − / +; the rest of the row is the default
+                    else{int z=SettingsLayout.stepZone(x);if(z<0||z!=SettingsLayout.stepZone(downX))break;   // − / +; the label is the default
                         int sv=i-SettingsLayout.SOUND_VOLUME;soundVals[sv]=SettingsLayout.soundStep(i,soundVals[sv],z);e.putInt(SOUND_KEYS[sv],soundVals[sv]);}
                     applySound();
                     e.putBoolean("engine_sound",soundOn).putInt("engine_sound_route",soundRoute).putInt("engine_sound_engine",soundEngine).putInt("engine_sound_exhaust",soundExhaust);
                     sound.play(soundWanted()?soundRoute:-1);break;
                 case SettingsLayout.FX:   // sounds that are not the engine: each its own switch, a sample when it goes on
-                    if(i==SettingsLayout.FX_VOL){int zv=SettingsLayout.screenZone(x);if(zv!=SettingsLayout.screenZone(downX))break;   // − / + 10%; the rest of the row puts 70% back
+                    if(i==SettingsLayout.FX_VOL){int zv=SettingsLayout.stepZone(x);if(zv<0||zv!=SettingsLayout.stepZone(downX))break;   // − / + 10%; the label puts 70% back
                         SettingsLayout.fxVol=zv==1?Math.max(0,SettingsLayout.fxVol-10):zv==2?Math.min(200,SettingsLayout.fxVol+10):70;e.putInt("fx_vol",SettingsLayout.fxVol);
                         beep.playCoin(soundOn&&soundRoute==0?sound:null,500,SettingsLayout.fxVol/100f);break;}   // a sample clink
                     if(i==SettingsLayout.FX_COIN){EcoCluster.coinSound=!EcoCluster.coinSound;saveEco();   // eco coin sound: plays through the beep channel

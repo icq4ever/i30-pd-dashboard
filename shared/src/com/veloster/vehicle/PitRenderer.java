@@ -287,7 +287,7 @@ public final class PitRenderer {
         if(settingsCat==SettingsLayout.FLOAT&&pickSlot<0){drawFloatPane(c);return;}
         int cat=pickSlot>=0?SettingsLayout.PICK:settingsCat;float w=SettingsLayout.itemW(cat),h=SettingsLayout.itemH(cat);
         if(pickSlot>=0)text(c,ClusterPicker.MODE_NAMES[pickSlot]+" "+UiText.t("모드 화면"),SettingsLayout.PANE_L,SettingsLayout.TOP+20,16,BLUE,true);
-        boolean paneScroll=cat==SettingsLayout.SOUND;float paneSc=paneScroll?settingsScroll:0;   // the 사운드 pane scrolls: its rows overflow the pane
+        boolean paneScroll=SettingsLayout.rowScroll(cat);float paneSc=paneScroll?settingsScroll:0;   // the 사운드 pane scrolls: its rows overflow the pane
         if(paneScroll){c.save();c.clipRect(SettingsLayout.PANE_L-6,SettingsLayout.TOP,800,SettingsLayout.BOTTOM);}
         for(int i=0;i<SettingsLayout.count(cat);i++){
             float l=SettingsLayout.left(cat,i),t=SettingsLayout.top(cat,i)-paneSc;
@@ -359,10 +359,9 @@ public final class PitRenderer {
             if(sub==null)text(c,UiText.t(name),tx,t+h/2+7,18,ink,true);
             else{text(c,UiText.t(name),tx,t+h/2-3,18,ink,true);text(c,UiText.t(sub),tx,t+h/2+17,12,cat==SettingsLayout.SCREENS&&!dim?BLUE:MUTED,cat==SettingsLayout.SCREENS);}
             if(cat==SettingsLayout.RPM&&(i<SettingsLayout.RPM_BEEP||i==SettingsLayout.RPM_BEEP_VOL)||cat==SettingsLayout.SOUND&&i>=SettingsLayout.SOUND_VOLUME&&i<=SettingsLayout.SOUND_LEAD||cat==SettingsLayout.FX&&i==SettingsLayout.FX_VOL){   // value, then − and +
-                float by=t+(h-SettingsLayout.SBTN_W)/2;String v=cat==SettingsLayout.FX?SettingsLayout.fxVol+"%":cat==SettingsLayout.SOUND?soundValue(i):i==SettingsLayout.RPM_BEEP_VOL?beepVol+"%":(i==SettingsLayout.RPM_SHIFT?shiftTarget:(int)profile.redline)+" rpm";
-                paint.setTypeface(Typeface.DEFAULT_BOLD);paint.setTextSize(18);text(c,v,SettingsLayout.upBtnL()-14-paint.measureText(v),t+h/2+7,18,dim?MUTED:BLUE,true);   // a dimmed row (sound off, no turbo) greys its value and buttons too
-                button(c,"−",SettingsLayout.upBtnL(),by,SettingsLayout.SBTN_W,SettingsLayout.SBTN_W,false,dim?MUTED:BLUE);
-                button(c,"+",SettingsLayout.downBtnL(),by,SettingsLayout.SBTN_W,SettingsLayout.SBTN_W,false,dim?MUTED:BLUE);
+                float by=t+(h-SettingsLayout.STEP_H)/2;String v=cat==SettingsLayout.FX?SettingsLayout.fxVol+"%":cat==SettingsLayout.SOUND?soundValue(i):i==SettingsLayout.RPM_BEEP_VOL?beepVol+"%":(i==SettingsLayout.RPM_SHIFT?shiftTarget:(int)profile.redline)+" rpm";
+                paint.setTypeface(Typeface.DEFAULT_BOLD);paint.setTextSize(18);text(c,v,SettingsLayout.stepMinusL()-14-paint.measureText(v),t+h/2+7,18,dim?MUTED:BLUE,true);   // a dimmed row (sound off, no turbo) greys its value and buttons too
+                stepButton(c,"−",SettingsLayout.stepMinusL(),by,dim);stepButton(c,"+",SettingsLayout.stepPlusL(),by,dim);
             }
             if(value!=null){paint.setTypeface(Typeface.DEFAULT_BOLD);paint.setTextSize(18);String v=UiText.t(value);text(c,v,l+w-20-paint.measureText(v),t+h/2+7,18,sel||(cat==SettingsLayout.MODE&&i>=SettingsLayout.MODE_FIRST||cat==SettingsLayout.SOUND||cat==SettingsLayout.FX||cat==SettingsLayout.RPM)&&!dim?BLUE:MUTED,true);}
         }
@@ -728,7 +727,9 @@ public final class PitRenderer {
         box(c,30,124,470,127,LINE);if(rpm>0)box(c,30,124,30+440*rpm/profile.maxRpm,127,BLUE);
         box(c,180,143,316,340,BLUE);
         centered(c,"EMS GEAR",248,164,11,BG,true);
-        centered(c,value("현재 기어"),248,290,130,BG,true);
+        {String g=value("현재 기어");paint.setTypeface(Typeface.DEFAULT_BOLD);paint.setTextSize(130);float gw=paint.measureText(g);
+            float sz=gw>116?130*116/gw:130;   // "M7" in the manual gate ran past the 136-wide box: two characters shrink to fit, one stays 130
+            centered(c,g,248,290-(130-sz)*0.36f,sz,BG,true);}
         centered(c,"HYUNDAI i30",248,324,10,BG,true);
         centered(c,"SPEED",98,177,12,MUTED,true);
         centeredNumber(c,value("속도 km/h"),98,253,57,WHITE,true);
@@ -761,6 +762,11 @@ public final class PitRenderer {
         box(c,x,432,x+width,438,LINE);
         float fraction=Math.max(0,Math.min(1,numeric(prefix)/maximum));
         if(fraction>0)box(c,x,432,x+width*fraction,438,color);
+    }
+    /** A settings − / + button: wide, the sign large and centred in the accent (the small grey sign was easy to miss). */
+    private void stepButton(Canvas c,String s,float x,float y,boolean dim){
+        float w=SettingsLayout.STEP_W,h=SettingsLayout.STEP_H;panel(c,x,y,w,h,0xff141a1d,dim?LINE:BLUE);
+        centered(c,s,x+w/2,y+h/2+9,26,dim?MUTED:BLUE,true);
     }
     private void button(Canvas c,String s,float x,float y,float w,float h,boolean on,int accent){
         panel(c,x,y,w,h,on?0xff233b46:0xff111415,on?accent:LINE);
@@ -845,19 +851,16 @@ public final class PitRenderer {
             text(c,Float.isNaN(t[k])?"—":Telemetry.format("%.0f",t[k]),x+70,ty,22,hot?BG:lv==1?AMBER:BLUE,true);}
         text(c,"°C",x+w-28,y+88,11,hot?BG:MUTED,false);
     }
-    /** DCT clutch life candidates for the owner to compare with a scanner: two pairs (A, B) of odd / even percentages, 2 decimals. */
+    /** The TCU 22 01A5 pair for owners to check against a scanner or their mileage: odd / even, 1 decimal, not yet called the clutch life. */
     private void lifeCard(Canvas c,float x,float y,float w,float h){
         panel(c,x,y,w,h,PANEL,LINE);box(c,x+10,y,x+53,y+2,BLUE);
-        fitted(c,UiText.t("DCT 잔량 후보 (확인용)"),x+10,y+20,13,w-20,MUTED);
-        String[] n={"A","B"};
-        for(int k=0;k<2;k++){
-            float o=clutchT(Telemetry.DCT_LIFE_A_ODD+2*k),e=clutchT(Telemetry.DCT_LIFE_A_ODD+1+2*k),ty=y+48+k*28;
-            text(c,n[k],x+10,ty,13,MUTED,true);
-            text(c,Float.isNaN(o)?"—":String.format(Locale.US,"%.2f",o),x+28,ty,15,BLUE,true);
-            String es=Float.isNaN(e)?"—":String.format(Locale.US,"%.2f",e);paint.setTypeface(Typeface.DEFAULT_BOLD);paint.setTextSize(15);
-            text(c,es,x+w-12-paint.measureText(es),ty,15,BLUE,true);
-        }
-        text(c,UiText.t("홀 · 짝, % (아직 어느 쪽인지 모름)"),x+10,y+88,9,MUTED,false);
+        fitted(c,UiText.t("DCT 값 확인용 (01A5)"),x+10,y+20,13,w-20,MUTED);
+        String[] n={UiText.t("홀수단"),UiText.t("짝수단")};
+        for(int k=0;k<2;k++){float v=clutchT(Telemetry.DCT_LIFE_A_ODD+k),ty=y+48+k*26;
+            text(c,n[k],x+10,ty,12,MUTED,false);
+            String s=Float.isNaN(v)?"—":String.format(Locale.US,"%.1f",v);paint.setTypeface(Typeface.DEFAULT_BOLD);paint.setTextSize(17);
+            text(c,s,x+w-12-paint.measureText(s),ty,17,BLUE,true);}
+        text(c,UiText.t("잔량인지 확인 중 · 주행거리와 함께 알려 주세요"),x+10,y+88,9,MUTED,false);
     }
     private float clutchT(int i){Telemetry.Sample k=samples[i];return k.valid?k.value:Float.NaN;}
     /** F1 brake card: the clutch temperatures where a 6MT shows its clutch switch; filled at red, nothing before the TCU answers. */
@@ -899,7 +902,8 @@ public final class PitRenderer {
         box(c,294,120,506,367,BLUE);
         centered(c,"E M S  G E A R",400,148,15,BG,true);
         String gear=value("현재 기어");
-        centered(c,gear,400,321,184,BG,true);
+        {paint.setTypeface(Typeface.DEFAULT_BOLD);paint.setTextSize(184);float gw=paint.measureText(gear),sz=gw>190?184*190/gw:184;   // "M7" ran past the 212-wide box
+            centered(c,gear,400,321-(184-sz)*0.36f,sz,BG,true);}
         centered(c,"i 3 0  P D",400,350,11,BG,true);
         text(c,"SPEED",22,148,14,MUTED,true);
         text(c,"km/h",229,148,12,MUTED,false);

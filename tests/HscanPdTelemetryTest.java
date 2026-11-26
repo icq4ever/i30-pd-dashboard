@@ -372,7 +372,9 @@ public final class HscanPdTelemetryTest {
         {Telemetry k=new Telemetry();byte[] r=hex("62 01 A4 FF FF E0 00 14 02 00 26 00 FE 94 1B 9E BD C3 14 94 08 F6 C4 10 02 03 0E 0E F0 FC C0 FF 00 31 00 44 00");
         k.obd(Telemetry.DID_CLUTCH,java.util.Arrays.copyOfRange(r,3,r.length),3430);
         check(k.sample(Telemetry.CLUTCH_ODD,3430).value==49&&k.sample(Telemetry.CLUTCH_EVEN,3430).value==68,"DCT clutch temperatures odd 49 / even 68 C");
-        k.obd(Telemetry.DID_CLUTCH,new byte[10],3431);check(k.sample(Telemetry.CLUTCH_ODD,3431).value==49,"a short reply leaves them alone");}
+        k.obd(Telemetry.DID_CLUTCH,new byte[10],3431);check(k.sample(Telemetry.CLUTCH_ODD,3431).value==49,"a short reply leaves them alone");
+        byte[] na=java.util.Arrays.copyOfRange(r,3,r.length);na[29]=na[30]=na[31]=(byte)0xFF;na[30]=(byte)0xFE;na[32]=(byte)0xFE;
+        k.obd(Telemetry.DID_CLUTCH,na,3432);check(!k.sample(Telemetry.CLUTCH_ODD,3432).valid&&!k.sample(Telemetry.CLUTCH_EVEN,3432).valid,"FF FE (no value) reads as none, not 65534 C");}
         // tyre temperatures from BCM 22 C00B (a PD, parked after a drive): four wheels of [pressure, temperature + 50, 01, 00] after FFFF0000
         {Telemetry k=new Telemetry();byte[] r=hex("62 C0 0B FF FF 00 00 AE 46 01 00 AD 46 01 00 AD 42 01 00 AD 42 01 00");
         k.obd(Telemetry.DID_TIRE,java.util.Arrays.copyOfRange(r,3,r.length),3435);
@@ -384,13 +386,13 @@ public final class HscanPdTelemetryTest {
         byte[] q=java.util.Arrays.copyOfRange(r,3,r.length);q[5+4*2]=(byte)(50+31);q[5+4*3]=(byte)(50+32);Telemetry y=new Telemetry();y.obd(Telemetry.DID_TIRE,q,3436);
         check(y.sample(Telemetry.TIRE_TEMP_RR,3436).value==31&&y.sample(Telemetry.TIRE_TEMP_RL,3436).value==32,"the third wheel is the rear right, the fourth the rear left");
         k.obd(Telemetry.DID_TIRE,new byte[10],3437);check(k.sample(Telemetry.TIRE_TEMP_FL,3437).value==20,"a short reply leaves them alone");}
-        // TCU 22 01A6 clutch life candidates (a PD, parked): two blocks at data bytes 22 and 50, V1 / V2 as u16 / 100
-        {Telemetry k=new Telemetry();byte[] d=new byte[100];
-            int[][] b={{22,5229,6253},{50,4827,6363}};for(int[] x:b){int o=x[0];d[o]=0;d[o+1]=60;d[o+2]=(byte)(1000>>8);d[o+3]=(byte)(1000&255);d[o+12]=(byte)(x[1]>>8);d[o+13]=(byte)x[1];d[o+14]=(byte)(x[2]>>8);d[o+15]=(byte)x[2];}
-            k.obd(Telemetry.DID_TCU_LIFE,d,3438);
-            check(Math.abs(k.sample(Telemetry.DCT_LIFE_A_ODD,3438).value-52.29f)<0.001f&&Math.abs(k.sample(Telemetry.DCT_LIFE_A_EVEN,3438).value-48.27f)<0.001f
-                &&Math.abs(k.sample(Telemetry.DCT_LIFE_B_ODD,3438).value-62.53f)<0.001f&&Math.abs(k.sample(Telemetry.DCT_LIFE_B_EVEN,3438).value-63.63f)<0.001f,"DCT life candidates 52.29 / 48.27 and 62.53 / 63.63");
-            Telemetry z=new Telemetry();z.obd(Telemetry.DID_TCU_LIFE,new byte[100],3439);check(!z.sample(Telemetry.DCT_LIFE_A_ODD,3439).valid,"a reply without the block header is not read");}
+        // TCU 22 01A5 (our car, 2026-11-12, 104,000 km): data bytes 20..23 03 CB 03 CA -> 97.1 / 97.0, the value owners check
+        {Telemetry k=new Telemetry();byte[] r=hex("62 01 A5 FF F0 00 00 00 36 00 36 00 CC FF 30 00 0C 00 0C 00 02 00 01 03 CB 03 CA 01 08");
+            k.obd(Telemetry.DID_TCU_LIFE,java.util.Arrays.copyOfRange(r,3,r.length),3438);
+            check(Math.abs(k.sample(Telemetry.DCT_LIFE_A_ODD,3438).value-97.1f)<0.01f&&Math.abs(k.sample(Telemetry.DCT_LIFE_A_EVEN,3438).value-97.0f)<0.01f
+                &&!k.sample(Telemetry.DCT_LIFE_B_ODD,3438).valid,"DCT 01A5 pair 97.1 / 97.0, B slots unused");
+            Telemetry z=new Telemetry();z.obd(Telemetry.DID_TCU_LIFE,new byte[10],3439);check(!z.sample(Telemetry.DCT_LIFE_A_ODD,3439).valid,"a short reply is not read");
+            byte[] f=new byte[26];f[20]=f[21]=f[22]=f[23]=(byte)0xFF;z.obd(Telemetry.DID_TCU_LIFE,f,3440);check(!z.sample(Telemetry.DCT_LIFE_A_ODD,3440).valid,"FF FF is withheld");}
         // Hyundai diesel DPF block 22 ED03 (OBDb layout): 35 -> 15.1 kPa, 58 -> 372 C upstream, 123 400 m since the regeneration
         {Telemetry k=new Telemetry();byte[] e=new byte[56];e[36]=35;e[38]=58;e[45]=0;e[46]=1;e[47]=(byte)0xE2;e[48]=0x08;
         k.obd(Telemetry.DID_DPF,e,3440);
