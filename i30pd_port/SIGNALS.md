@@ -106,12 +106,11 @@ hscan 슬롯 이름(EMS11, CLU11 …)은 공개 DBC(commaai/opendbc `hyundai_201
 
 | 번호 | 상수 | 이름 | 단위 | 출처 | 파싱 | 상태 · 메모 |
 |---|---|---|---|---|---|---|
-| 66 | `CLUTCH_ODD` | 클러치 온도 홀수단 (1·3·5·7) | °C | OBD 22 `01A4` (TCU) | `u16be(d,29)` | ✅ 경고 기준 150 / 180 °C(`CLUTCH_WARM` / `CLUTCH_HOT`)는 추정 |
-| 67 | `CLUTCH_EVEN` | 클러치 온도 짝수단 (2·4·6·R) | °C | OBD 22 `01A4` (TCU) | `u16be(d,31)` | ✅ |
-| 74 | `DCT_LIFE_A_ODD` | 클러치 잔량 후보 A 홀수단 | % | OBD 22 `01A6` (TCU) | `u16be(d,34) / 100` | △ |
-| 76 | `DCT_LIFE_B_ODD` | 클러치 잔량 후보 B 홀수단 | % | OBD 22 `01A6` | `u16be(d,36) / 100` | △ |
-| 75 | `DCT_LIFE_A_EVEN` | 클러치 잔량 후보 A 짝수단 | % | OBD 22 `01A6` | `u16be(d,62) / 100` | △ |
-| 77 | `DCT_LIFE_B_EVEN` | 클러치 잔량 후보 B 짝수단 | % | OBD 22 `01A6` | `u16be(d,64) / 100` | △ 어느 쪽이 진짜 잔량인지 미확정 (beta 브랜치 `DCT_WEAR.md`) |
+| 66 | `CLUTCH_ODD` | 클러치 온도 홀수단 (1·3·5·7) | °C | OBD 22 `01A4` (TCU) | `u16be(d,29)` (500 초과 = 없음. TCU의 "값 없음" `FF FE`가 65534로 읽히던 것을 막음) | ✅ 경고 기준 150 / 180 °C(`CLUTCH_WARM` / `CLUTCH_HOT`)는 추정 |
+| 67 | `CLUTCH_EVEN` | 클러치 온도 짝수단 (2·4·6·R) | °C | OBD 22 `01A4` (TCU) | `u16be(d,31)` (500 초과 = 없음) | ✅ |
+| 74 | `DCT_LIFE_A_ODD` | DCT 01A5 홀수단 | % | OBD 22 `01A5` (TCU) | `u16be(d,20) / 10` (1000 초과 = 없음) | △ 우리 차 104,000 km에서 97.1. 클러치 잔량으로 보이지만 스캐너 값이나 주행거리 보고로 확정 전 ([`docs/DCT_CLUTCH_LIFE_ko.md`](../docs/DCT_CLUTCH_LIFE_ko.md)) |
+| 75 | `DCT_LIFE_A_EVEN` | DCT 01A5 짝수단 | % | OBD 22 `01A5` (TCU) | `u16be(d,22) / 10` (1000 초과 = 없음) | △ 우리 차 97.0 |
+| 76·77 | `DCT_LIFE_B_ODD` `DCT_LIFE_B_EVEN` | (안 씀) | | | | 예전 `22 01A6` 후보 자리. 01A6은 학습 테이블로 밝혀져(2026-11-26) 비워 둠 |
 
 ## 디젤 전용
 
